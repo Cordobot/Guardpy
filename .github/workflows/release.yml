@@ -48,7 +48,7 @@ jobs:
         run: |
           mkdir -p capturas
           GUARDPY_THEME=light python src/main.py --selftest capturas/claro.png
-          GUARDPY_THEME=dark  python src/main.py --selftest capturas/oscuro.png
+          GUARDPY_THEME=dark GUARDPY_SCROLL=1 python src/main.py --selftest capturas/oscuro.png
           for f in capturas/*.png; do echo "IMG-BEGIN $f"; base64 -w 4000 "$f"; echo; echo "IMG-END"; done
 
       - uses: actions/upload-artifact@v4

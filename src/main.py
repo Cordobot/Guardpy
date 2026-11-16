@@ -617,6 +617,8 @@ class App:
     def _captura(self):
         try:
             from PIL import ImageGrab
+            if os.environ.get("GUARDPY_SCROLL"):
+                self.canvas.yview_moveto(1)
             self.root.update()
             x, y = self.root.winfo_rootx(), self.root.winfo_rooty()
             w, h = self.root.winfo_width(), self.root.winfo_height()
