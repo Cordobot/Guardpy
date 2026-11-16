@@ -197,7 +197,8 @@ class App:
         cont = ttk.Frame(r)
         cont.pack(fill="both", expand=True)
         self.canvas = tk.Canvas(cont, highlightthickness=0, bd=0,
-                                bg=ttk.Style().lookup("TFrame", "background"))
+                                bg=(ttk.Style().lookup(".", "background")
+                                    or ("#1c1c1c" if es_oscuro() else "#fafafa")))
         sb = ttk.Scrollbar(cont, orient="vertical", command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=sb.set)
         sb.pack(side="right", fill="y")

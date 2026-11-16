@@ -44,6 +44,7 @@ jobs:
           fi
 
       - name: Prueba visual (claro y oscuro)
+        # falla la compilacion si la interfaz no abre
         shell: bash
         run: |
           mkdir -p capturas
