@@ -1,11 +1,27 @@
 import json
 import os
+import shutil
+import sys
 import time
 from pathlib import Path
 
-APP_NAME = "DriveAutoUpload"
-VERSION = "1.0.0"
-APP_DIR = Path(os.environ.get("APPDATA", Path.home())) / APP_NAME
+APP_NAME = "Guardpy"
+
+
+def _version():
+    for base in (getattr(sys, "_MEIPASS", ""), Path(__file__).resolve().parent.parent):
+        p = Path(base) / "VERSION"
+        if p.exists():
+            return p.read_text().strip()
+    return "dev"
+
+
+VERSION = _version()
+_APPDATA = Path(os.environ.get("APPDATA", Path.home()))
+APP_DIR = _APPDATA / APP_NAME
+_OLD_DIR = _APPDATA / "DriveAutoUpload"
+if _OLD_DIR.exists() and not APP_DIR.exists():  # migrar configuracion de v1.0
+    shutil.copytree(_OLD_DIR, APP_DIR)
 APP_DIR.mkdir(parents=True, exist_ok=True)
 CONFIG_FILE = APP_DIR / "config.json"
 LOG_FILE = APP_DIR / "registro.log"
@@ -20,6 +36,7 @@ DEFAULT = {
     "dias": [0, 1, 2, 3, 4, 5, 6],  # 0 = lunes
     "borrar": True,
     "ultima_ejecucion": "",
+    "ultimo_resultado": "",
 }
 
 

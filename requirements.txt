@@ -2,3 +2,6 @@ google-api-python-client==2.151.0
 google-auth-oauthlib==1.2.1
 pystray==0.19.5
 Pillow==11.0.0
+sv-ttk==2.6.0
+darkdetect==0.8.0
+pywinstyles==1.8

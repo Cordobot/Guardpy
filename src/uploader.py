@@ -1,6 +1,7 @@
 """Logica de subida a Google Drive: subir, verificar MD5 y borrar del PC."""
 import hashlib
 import shutil
+import sys
 import time
 from pathlib import Path
 
@@ -14,6 +15,8 @@ from config import APP_DIR, log
 
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 CREDENTIALS = APP_DIR / "credentials.json"
+# Cliente OAuth incluido en el instalador (opcional, se agrega al compilar)
+BUNDLED = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent)) / "google_client.json"
 TOKEN = APP_DIR / "token.json"
 IGNORAR = {"desktop.ini", "thumbs.db"}
 IGNORAR_EXT = {".tmp", ".part", ".crdownload", ".lock"}
@@ -30,18 +33,38 @@ def importar_credenciales(ruta):
         TOKEN.unlink()
 
 
+def cliente_oauth():
+    if CREDENTIALS.exists():
+        return CREDENTIALS
+    if BUNDLED.exists():
+        return BUNDLED
+    return None
+
+
+def conectado():
+    return TOKEN.exists() and cliente_oauth() is not None
+
+
+def desconectar():
+    if TOKEN.exists():
+        TOKEN.unlink()
+
+
 def conectar(interactivo=True):
-    if not CREDENTIALS.exists():
-        raise SinCredenciales("Falta credentials.json (Configuracion > Credenciales).")
+    cliente = cliente_oauth()
+    if cliente is None:
+        raise SinCredenciales("Conecta tu cuenta de Google en Guardpy.")
     creds = Credentials.from_authorized_user_file(str(TOKEN), SCOPES) if TOKEN.exists() else None
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         elif interactivo:
-            flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS), SCOPES)
-            creds = flow.run_local_server(port=0)
+            flow = InstalledAppFlow.from_client_secrets_file(str(cliente), SCOPES)
+            creds = flow.run_local_server(
+                port=0, open_browser=True,
+                success_message="Listo. Guardpy ya está conectado a tu Google Drive. Puedes cerrar esta pestaña.")
         else:
-            raise SinCredenciales("Necesitas iniciar sesion en Google.")
+            raise SinCredenciales("Conecta tu cuenta de Google en Guardpy.")
         TOKEN.write_text(creds.to_json())
     return build("drive", "v3", credentials=creds, cache_discovery=False)
 
