@@ -122,7 +122,6 @@ class App:
 
         self.root = tk.Tk()
         self.root.title(APP_NAME)
-        self.root.geometry("600x760")
         self.root.minsize(560, 600)
         self._icono_ventana()
         sv_ttk.set_theme("dark" if es_oscuro() else "light")
@@ -174,10 +173,12 @@ class App:
         self.c_sub = "#a1a1aa" if oscuro else "#5f6368"
         self.c_ok = "#4ade80" if oscuro else "#15803d"
         self.c_err = "#f87171" if oscuro else "#b91c1c"
+        self.c_link = "#60a5fa" if oscuro else "#2563eb"
         st.configure("Titulo.TLabel", font=(FUENTE_T, 22, "bold"))
         st.configure("Seccion.TLabel", font=(FUENTE_T, 13, "bold"))
         st.configure("Texto.TLabel", font=(FUENTE, 10))
         st.configure("Sub.TLabel", font=(FUENTE, 9), foreground=self.c_sub)
+        st.map("Sub.TLabel", foreground=[("!disabled", self.c_sub)])
         st.configure("Estado.TLabel", font=(FUENTE, 11))
         st.configure("Ok.TLabel", font=(FUENTE, 10, "bold"), foreground=self.c_ok)
         st.configure("Err.TLabel", font=(FUENTE, 10, "bold"), foreground=self.c_err)
@@ -191,8 +192,23 @@ class App:
     # ---------------- construccion ----------------
     def _construir(self):
         r = self.root
-        outer = ttk.Frame(r, padding=(24, 20, 24, 16))
-        outer.pack(fill="both", expand=True)
+        alto = min(800, r.winfo_screenheight() - 90)
+        r.geometry(f"600x{alto}")
+        cont = ttk.Frame(r)
+        cont.pack(fill="both", expand=True)
+        self.canvas = tk.Canvas(cont, highlightthickness=0, bd=0,
+                                bg=ttk.Style().lookup("TFrame", "background"))
+        sb = ttk.Scrollbar(cont, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=sb.set)
+        sb.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+        outer = ttk.Frame(self.canvas, padding=(24, 20, 20, 16))
+        win = self.canvas.create_window((0, 0), window=outer, anchor="nw")
+        outer.bind("<Configure>", lambda e: self.canvas.configure(
+            scrollregion=self.canvas.bbox("all")))
+        self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfigure(win, width=e.width))
+        self.canvas.bind_all("<MouseWheel>", lambda e: self.canvas.yview_scroll(
+            int(-e.delta / 120), "units") if self.canvas.winfo_height() < outer.winfo_height() else None)
 
         # Cabecera
         cab = ttk.Frame(outer)
@@ -225,7 +241,7 @@ class App:
                                           justify="left")
         self.lbl_cuenta_ayuda.pack(anchor="w", pady=(6, 0))
         self.lnk_ayuda = ttk.Label(c1, text="Cómo obtener el archivo de Google (paso a paso)",
-                                   style="Link.TLabel", cursor="hand2")
+                                   style="Link.TLabel", cursor="hand2", foreground=self.c_link)
         self.lnk_ayuda.bind("<Button-1>", lambda e: webbrowser.open(AYUDA_URL))
 
         # 2. Carpetas
@@ -288,8 +304,9 @@ class App:
 
         # Pie
         pie = ttk.Frame(outer)
-        pie.pack(fill="x", side="bottom")
-        lr = ttk.Label(pie, text="Ver historial", style="Link.TLabel", cursor="hand2")
+        pie.pack(fill="x", pady=(16, 0))
+        lr = ttk.Label(pie, text="Ver historial", style="Link.TLabel", cursor="hand2",
+                       foreground=self.c_link)
         lr.pack(side="left")
         lr.bind("<Button-1>", lambda e: self._abrir_registro())
         ttk.Label(pie, text=f"Versión {VERSION}", style="Sub.TLabel").pack(side="right")
@@ -299,8 +316,8 @@ class App:
         self._refrescar_estado()
 
     def _tarjeta(self, padre, titulo):
-        ttk.Label(padre, text=titulo, style="Seccion.TLabel").pack(anchor="w", pady=(14, 6))
-        card = ttk.Frame(padre, style="Card.TFrame", padding=(16, 14))
+        ttk.Label(padre, text=titulo, style="Seccion.TLabel").pack(anchor="w", pady=(12, 5))
+        card = ttk.Frame(padre, style="Card.TFrame", padding=(16, 12))
         card.pack(fill="x")
         return card
 
@@ -318,7 +335,7 @@ class App:
             txt.pack(side="left", fill="x", expand=True)
             p = Path(ruta)
             existe = p.is_dir()
-            ttk.Label(txt, text=("📁  " if existe else "⚠️  ") + p.name,
+            ttk.Label(txt, text=("🗀  " if existe else "⚠  ") + p.name,
                       style="Carpeta.TLabel").pack(anchor="w")
             ttk.Label(txt, text=str(p) if existe else f"{p}  (no existe, se creará)",
                       style="Sub.TLabel").pack(anchor="w")
@@ -349,16 +366,19 @@ class App:
     def _refrescar_cuenta(self):
         self.lnk_ayuda.pack_forget()
         if uploader.conectado():
-            self.lbl_cuenta.config(text="●  Conectado a Google Drive", style="Ok.TLabel")
+            self.lbl_cuenta.config(text="●  Conectado a Google Drive", style="Ok.TLabel",
+                                   foreground=self.c_ok)
             self.btn_cuenta.config(text="Desconectar", style="TButton")
             self.lbl_cuenta_ayuda.config(text="")
         elif uploader.cliente_oauth():
-            self.lbl_cuenta.config(text="●  Sin conectar", style="Err.TLabel")
+            self.lbl_cuenta.config(text="●  Sin conectar", style="Err.TLabel",
+                                   foreground=self.c_err)
             self.btn_cuenta.config(text="Conectar con Google", style="Accent.TButton")
             self.lbl_cuenta_ayuda.config(
                 text="Se abrirá tu navegador para que inicies sesión y des permiso a Guardpy.")
         else:
-            self.lbl_cuenta.config(text="●  Sin conectar", style="Err.TLabel")
+            self.lbl_cuenta.config(text="●  Sin conectar", style="Err.TLabel",
+                                   foreground=self.c_err)
             self.btn_cuenta.config(text="Elegir archivo de Google...", style="Accent.TButton")
             self.lbl_cuenta_ayuda.config(
                 text="Para conectar, Guardpy necesita el archivo de credenciales que "
