@@ -496,6 +496,8 @@ class App:
         )
 
     def mostrar(self):
+        self._refrescar_cuenta()
+        self._refrescar_estado()
         self.root.deiconify()
         self.root.lift()
         self.root.focus_force()
@@ -593,7 +595,8 @@ class App:
                     msg = f"{n} archivos guardados en Google Drive."
             log(f"Copia terminada: {n} ok, {err} errores")
         except uploader.SinCredenciales as e:
-            ico, msg, resultado = "error", str(e), "No se pudo copiar: falta conectar Google"
+            ico, msg, resultado = "error", str(e), "No se pudo copiar: conecta de nuevo tu cuenta de Google"
+            self.cola.put(("ui", lambda: (self._refrescar_cuenta(), self.mostrar())))
             log(str(e))
         except Exception as e:
             ico, msg, resultado = "error", "Hubo un error al guardar. Revisa tu conexión a internet.", \

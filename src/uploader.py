@@ -5,6 +5,7 @@ import sys
 import time
 from pathlib import Path
 
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -57,7 +58,17 @@ def conectar(interactivo=True):
     creds = Credentials.from_authorized_user_file(str(TOKEN), SCOPES) if TOKEN.exists() else None
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+            try:
+                creds.refresh(Request())
+            except RefreshError:
+                # sesion vencida o revocada (en modo "Testing" Google la vence cada 7 dias)
+                TOKEN.unlink(missing_ok=True)
+                if not interactivo:
+                    raise SinCredenciales("Tu sesión de Google venció. Abre Guardpy y pulsa "
+                                          "\"Conectar con Google\".")
+                creds = None
+        if creds and creds.valid:
+            pass
         elif interactivo:
             flow = InstalledAppFlow.from_client_secrets_file(str(cliente), SCOPES)
             creds = flow.run_local_server(
