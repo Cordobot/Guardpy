@@ -1,0 +1,61 @@
+name: Build installer
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller==6.11.1
+
+      - name: Generar icono
+        run: python assets/make_icon.py
+
+      - name: Compilar exe
+        run: >
+          pyinstaller --noconfirm --windowed --name DriveAutoUpload
+          --icon assets/icon.ico --paths src
+          --collect-data googleapiclient
+          src/main.py
+
+      - name: Version
+        id: v
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then echo "ver=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT; else echo "ver=1.0.0" >> $GITHUB_OUTPUT; fi
+
+      - name: Crear instalador (Inno Setup)
+        run: |
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=${{ steps.v.outputs.ver }} installer\DriveAutoUpload.iss
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DriveAutoUpload-Setup
+          path: dist/DriveAutoUpload-Setup-*.exe
+
+      - name: Publicar release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: DriveAutoUpload ${{ steps.v.outputs.ver }}
+          files: dist/DriveAutoUpload-Setup-*.exe
+          make_latest: true
+          body: |
+            Versión estable ${{ steps.v.outputs.ver }}.
+            Descarga `DriveAutoUpload-Setup-${{ steps.v.outputs.ver }}.exe` e instálalo. Ver README para configurar Google.

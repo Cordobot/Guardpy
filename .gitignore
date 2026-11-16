@@ -1,0 +1,7 @@
+__pycache__/
+build/
+dist/
+*.spec
+assets/icon.ico
+credentials.json
+token.json
